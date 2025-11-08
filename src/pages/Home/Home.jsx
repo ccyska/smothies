@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'; // IMPORT INI
+import { useNavigate } from 'react-router-dom';
 import HomeView from './HomeView';
 import banadraImg from "../../assets/image/banadraImg.png";
 import mangoImg from "../../assets/image/mangoImg.png";
@@ -12,7 +12,7 @@ const Home = () => {
   const [menuIndex, setMenuIndex] = useState(0);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState(null);
-  const navigate = useNavigate(); // HOOK UNTUK NAVIGASI
+  const navigate = useNavigate();
 
   const menus = [
     { id: 1, name: "Banadra", image: banadraImg, description: "Banana mix Dragon" },
@@ -35,10 +35,6 @@ const Home = () => {
     image: logoputih
   };
 
-  const handleCardClick = (index) => {
-    setMenuIndex(index);
-  };
-
   // Fungsi untuk handle Buy Now
   const handleBuyNow = (menu) => {
     setSelectedMenu(menu);
@@ -51,7 +47,7 @@ const Home = () => {
     setSelectedMenu(null);
   };
 
-  // FUNGSI BARU: Save order ke localStorage
+  // Fungsi untuk save order ke localStorage
   const handleSaveOrder = (orderDetails) => {
     // Ambil existing orders dari localStorage
     const existingOrders = JSON.parse(localStorage.getItem('smoothieOrders')) || [];
@@ -63,7 +59,7 @@ const Home = () => {
       orderDate: new Date().toISOString()
     };
     
-    // Tambahkan ke array orders
+    // Tambahkan ke array orders (order terbaru di awal)
     const updatedOrders = [newOrder, ...existingOrders];
     
     // Simpan ke localStorage
@@ -72,7 +68,7 @@ const Home = () => {
     console.log('Order saved:', newOrder);
   };
 
-  // Fungsi untuk menangani navigasi - SUDAH DIPERBAIKI
+  // Fungsi untuk menangani navigasi
   const handleNavigate = (target) => {
     console.log(`Navigating to: ${target}`);
     
@@ -95,7 +91,7 @@ const Home = () => {
         }
         break;
       case 'history':
-        // NAVIGASI KE HALAMAN HISTORY - PERUBAHAN DI SINI
+        // Navigasi ke halaman history
         navigate('/history');
         break;
       default:
@@ -109,7 +105,6 @@ const Home = () => {
         menus={menus}
         menuIndex={menuIndex}
         setMenuIndex={setMenuIndex}
-        handleCardClick={handleCardClick}
         logo={logo}
         gambar={gambar}
         logo1={logo1}

@@ -27,9 +27,8 @@ const HomeView = ({
   const [orderData, setOrderData] = useState({
     quantity: 1,
     name: "",
-    classAddress: "",
+    address: "",
     notes: "",
-    paymentMethod: "QRIS",
     yogurtOption: "TANPA YOGURT"
   });
 
@@ -135,10 +134,7 @@ const HomeView = ({
     }
     
     if (type === 'number') {
-      // Jika input dikosongkan, biarkan empty string sementara
-      // Jika ada value, convert ke number
       const processedValue = value === '' ? '' : parseInt(value) || 1;
-      
       setOrderData(prev => ({
         ...prev,
         [name]: processedValue
@@ -165,9 +161,9 @@ const HomeView = ({
       errors.name = 'Nama harus diisi';
     }
 
-    // Validasi kelas/alamat
-    if (!orderData.classAddress.trim()) {
-      errors.classAddress = 'Kelas atau alamat harus diisi';
+    // Validasi alamat (WAJIB DIISI)
+    if (!orderData.address.trim()) {
+      errors.address = 'Alamat harus diisi';
     }
 
     setFormErrors(errors);
@@ -181,7 +177,7 @@ const HomeView = ({
     return quantity * pricePerItem;
   };
 
-  // Fungsi untuk handle submit form - SUDAH DIPERBARUI
+  // Fungsi untuk handle submit form
   const handleSubmitOrder = (e) => {
     e.preventDefault();
     
@@ -219,7 +215,8 @@ const HomeView = ({
       menuName: selectedMenu.name,
       yogurtOption: orderData.yogurtOption,
       quantity: quantity,
-      totalPrice: totalPrice
+      totalPrice: totalPrice,
+      address: orderData.address
     });
     
     // Tampilkan popup success
@@ -229,9 +226,8 @@ const HomeView = ({
     setOrderData({
       quantity: 1,
       name: "",
-      classAddress: "",
+      address: "",
       notes: "",
-      paymentMethod: "QRIS",
       yogurtOption: "TANPA YOGURT"
     });
     
@@ -402,26 +398,26 @@ const HomeView = ({
         </div>
       </section>
 
-      {/* ORDER FORM */}
+      {/* ORDER FORM - RESPONSIVE POPUP TANPA BACKDROP HITAM */}
       {showOrderForm && selectedMenu && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mt-4 md:mt-8 border-2 border-yellow-400">
-            <form onSubmit={handleSubmitOrder} className="p-6">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-2 md:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl w-full max-w-md my-auto border-2 border-yellow-400 mx-2">
+            <form onSubmit={handleSubmitOrder} className="p-4 md:p-6">
               {/* Header */}
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Pesan Menu</h2>
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">Pesan Menu</h2>
                 <button
                   type="button"
                   onClick={onCloseForm}
-                  className="text-gray-500 hover:text-gray-700 text-lg font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                  className="text-gray-500 hover:text-gray-700 text-base md:text-lg font-bold w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Menu Info */}
-              <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h3 className="text-lg font-semibold text-gray-800">
+              <div className="mb-4 md:mb-6 p-3 md:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h3 className="text-base md:text-lg font-semibold text-gray-800">
                   {selectedMenu.name} 
                   {selectedMenu.description && (
                     <span className="text-gray-600 font-normal"> ({selectedMenu.description})</span>
@@ -430,7 +426,7 @@ const HomeView = ({
               </div>
 
               {/* Form Fields */}
-              <div className="space-y-5">
+              <div className="space-y-4 md:space-y-5">
                 {/* Quantity */}
                 <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -442,7 +438,7 @@ const HomeView = ({
                     value={orderData.quantity}
                     onChange={handleInputChange}
                     min="1"
-                    className="w-full p-3 bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none outline-none"
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none outline-none"
                   />
                   {formErrors.quantity && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.quantity}</p>
@@ -460,28 +456,28 @@ const HomeView = ({
                     value={orderData.name}
                     onChange={handleInputChange}
                     placeholder="Masukkan nama"
-                    className="w-full p-3 bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none"
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none"
                   />
                   {formErrors.name && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>
                   )}
                 </div>
 
-                {/* Class/Address */}
+                {/* Alamat - WAJIB DIISI */}
                 <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
-                    Kelas atau Alamat : <span className="text-red-500">*</span>
+                    Alamat : <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="classAddress"
-                    value={orderData.classAddress}
+                  <textarea
+                    name="address"
+                    value={orderData.address}
                     onChange={handleInputChange}
-                    placeholder="Masukkan kelas atau alamat"
-                    className="w-full p-3 bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none"
+                    placeholder="Masukkan alamat lengkap untuk pengiriman"
+                    rows={isMobile ? 2 : 3}
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none outline-none"
                   />
-                  {formErrors.classAddress && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.classAddress}</p>
+                  {formErrors.address && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>
                   )}
                 </div>
 
@@ -494,7 +490,7 @@ const HomeView = ({
                     name="yogurtOption"
                     value={orderData.yogurtOption}
                     onChange={handleInputChange}
-                    className="w-full p-3 bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none"
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none"
                   >
                     <option value="TANPA YOGURT">TANPA YOGURT - Rp 8.000</option>
                     <option value="DENGAN YOGURT">DENGAN YOGURT - Rp 10.000</option>
@@ -511,50 +507,19 @@ const HomeView = ({
                     value={orderData.notes}
                     onChange={handleInputChange}
                     placeholder="Tambahkan catatan (opsional)"
-                    rows="3"
-                    className="w-full p-3 bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none outline-none"
+                    rows={isMobile ? 1 : 2}
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none outline-none"
                   />
                 </div>
 
                 {/* Divider */}
-                <div className="pt-4">
-                  {/* Payment Method */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-semibold mb-3 text-gray-700">
-                      Metode Pembayaran: <span className="text-red-500">*</span>
-                    </label>
-                    <div className="flex gap-6">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="QRIS"
-                          checked={orderData.paymentMethod === "QRIS"}
-                          onChange={handleInputChange}
-                          className="mr-2 w-4 h-4 text-yellow-600 border-2 border-yellow-400 focus:ring-yellow-400 outline-none"
-                        />
-                        <span className="text-sm">QRIS</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="CASH"
-                          checked={orderData.paymentMethod === "CASH"}
-                          onChange={handleInputChange}
-                          className="mr-2 w-4 h-4 text-yellow-600 border-2 border-yellow-400 focus:ring-yellow-400 outline-none"
-                        />
-                        <span className="text-sm">CASH</span>
-                      </label>
-                    </div>
-                  </div>
-
+                <div className="pt-3 md:pt-4">
                   {/* Total Price - DINAMIS */}
-                  <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <p className="text-lg font-bold text-gray-900">
+                  <div className="mb-4 md:mb-6 p-3 md:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="text-base md:text-lg font-bold text-gray-900">
                       Total Pembayaran : Rp {calculateTotalPrice().toLocaleString('id-ID')}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs md:text-sm text-gray-600 mt-1">
                       {orderData.quantity} x Rp {orderData.yogurtOption === "DENGAN YOGURT" ? "10.000" : "8.000"}
                     </p>
                   </div>
@@ -562,13 +527,13 @@ const HomeView = ({
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    className="w-full bg-yellow-400 text-gray-900 py-4 rounded-xl font-bold text-lg hover:bg-yellow-500 active:bg-yellow-600 transition-colors shadow-lg border-2 border-yellow-500 outline-none"
+                    className="w-full bg-yellow-400 text-gray-900 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-yellow-500 active:bg-yellow-600 transition-colors shadow-lg border-2 border-yellow-500 outline-none"
                   >
                     Buat Pesanan - Rp {calculateTotalPrice().toLocaleString('id-ID')}
                   </button>
                   
                   {/* Info required fields */}
-                  <p className="text-xs text-gray-500 mt-3 text-center">
+                  <p className="text-xs text-gray-500 mt-2 md:mt-3 text-center">
                     <span className="text-red-500">*</span> Wajib diisi
                   </p>
                 </div>
@@ -578,59 +543,62 @@ const HomeView = ({
         </div>
       )}
 
-      {/* SUCCESS POPUP - TANPA BACKDROP HITAM DAN SESUAI TEMA KUNING */}
+      {/* SUCCESS POPUP - RESPONSIVE TANPA BACKDROP HITAM */}
       {showSuccessPopup && lastOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border-2 border-yellow-400">
-            <div className="p-6 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl w-full max-w-md border-2 border-yellow-400 mx-2">
+            <div className="p-4 md:p-6 text-center">
               {/* Success Icon */}
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <svg className="w-6 h-6 md:w-8 md:h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
 
               {/* Title */}
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
                 Pesanan Berhasil!
               </h2>
 
               {/* Order Details */}
-              <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <p className="text-lg font-semibold text-gray-800 mb-2">
+              <div className="mb-4 md:mb-6 p-3 md:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-base md:text-lg font-semibold text-gray-800 mb-2">
                   {lastOrder.menuName} ({lastOrder.yogurtOption.toLowerCase()})
                 </p>
-                <p className="text-gray-600">
+                <p className="text-sm text-gray-600">
                   Jumlah: {lastOrder.quantity}
                 </p>
-                <p className="text-lg font-bold text-yellow-600 mt-2">
+                <p className="text-sm text-gray-600 mt-1">
+                  Alamat: {lastOrder.address}
+                </p>
+                <p className="text-base md:text-lg font-bold text-yellow-600 mt-2">
                   Total: Rp {lastOrder.totalPrice.toLocaleString('id-ID')}
                 </p>
               </div>
 
               {/* Message */}
-              <p className="text-gray-600 mb-6">
+              <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6">
                 Pesanan Anda telah berhasil disimpan. Anda bisa melihat riwayat pesanan di halaman History.
               </p>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 md:gap-3">
                 <button
                   onClick={handleGoToHistory}
-                  className="w-full bg-yellow-400 text-gray-900 py-3 rounded-xl font-bold text-lg hover:bg-yellow-500 active:bg-yellow-600 transition-colors shadow-lg border-2 border-yellow-500"
+                  className="w-full bg-yellow-400 text-gray-900 py-2 md:py-3 rounded-xl font-bold text-base md:text-lg hover:bg-yellow-500 active:bg-yellow-600 transition-colors shadow-lg border-2 border-yellow-500"
                 >
                   Lihat History
                 </button>
                 <button
                   onClick={handleStayHere}
-                  className="w-full bg-gray-200 text-gray-800 py-3 rounded-xl font-bold text-lg hover:bg-gray-300 active:bg-gray-400 transition-colors border-2 border-gray-300"
+                  className="w-full bg-gray-200 text-gray-800 py-2 md:py-3 rounded-xl font-bold text-base md:text-lg hover:bg-gray-300 active:bg-gray-400 transition-colors border-2 border-gray-300"
                 >
                   Lanjut Pesan
                 </button>
               </div>
 
               {/* Info */}
-              <p className="text-xs text-gray-500 mt-4">
+              <p className="text-xs text-gray-500 mt-3 md:mt-4">
                 Pesanan tersimpan otomatis di riwayat
               </p>
             </div>
