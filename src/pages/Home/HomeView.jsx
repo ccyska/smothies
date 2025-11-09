@@ -14,7 +14,9 @@ const HomeView = ({
   showOrderForm,
   selectedMenu,
   onCloseForm,
-  onSaveOrder
+  onSaveOrder,
+  loading,
+  error
 }) => {
   const menuContainerRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -22,6 +24,7 @@ const HomeView = ({
   const [initialized, setInitialized] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State untuk form
   const [orderData, setOrderData] = useState({
@@ -50,17 +53,10 @@ const HomeView = ({
     };
   }, []);
 
-  // Set Mango Bliss sebagai default hanya saat pertama kali load
+  // Set default menu hanya saat pertama kali load
   useEffect(() => {
     if (menus.length > 0 && !initialized) {
-      const mangoBlissIndex = menus.findIndex(item => 
-        item.name.toLowerCase().includes('mango') || 
-        item.name.toLowerCase().includes('bliss')
-      );
-      
-      const targetIndex = mangoBlissIndex !== -1 ? mangoBlissIndex : 0;
-      
-      setMenuIndex(targetIndex);
+      setMenuIndex(0);
       setInitialized(true);
     }
   }, [menus, setMenuIndex, initialized]);
@@ -173,12 +169,13 @@ const HomeView = ({
   // Hitung total harga berdasarkan jumlah dan opsi yogurt
   const calculateTotalPrice = () => {
     const quantity = orderData.quantity === '' ? 1 : parseInt(orderData.quantity) || 1;
-    const pricePerItem = orderData.yogurtOption === "DENGAN YOGURT" ? 10000 : 8000;
+    const basePrice = selectedMenu?.basePrice || 8000;
+    const pricePerItem = orderData.yogurtOption === "DENGAN YOGURT" ? basePrice + 2000 : basePrice;
     return quantity * pricePerItem;
   };
 
   // Fungsi untuk handle submit form
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = async (e) => {
     e.preventDefault();
     
     // Validasi form sebelum submit
@@ -187,53 +184,85 @@ const HomeView = ({
       return;
     }
     
-    // Convert quantity to number, default ke 1 jika empty
-    const quantity = orderData.quantity === '' ? 1 : parseInt(orderData.quantity) || 1;
+    setIsSubmitting(true);
     
-    // Hitung total harga
-    const pricePerItem = orderData.yogurtOption === "DENGAN YOGURT" ? 10000 : 8000;
-    const totalPrice = quantity * pricePerItem;
-    
-    const orderDetails = {
-      menu: selectedMenu,
-      ...orderData,
-      quantity: quantity,
-      pricePerItem,
-      totalPrice,
-      orderDate: new Date().toISOString()
-    };
-    
-    console.log("Order Data:", orderDetails);
-    
-    // SIMPAN ORDER KE HISTORY
-    if (onSaveOrder) {
-      onSaveOrder(orderDetails);
+    try {
+      // Convert quantity to number, default ke 1 jika empty
+      const quantity = orderData.quantity === '' ? 1 : parseInt(orderData.quantity) || 1;
+      
+      // Hitung total harga
+      const basePrice = selectedMenu?.basePrice || 8000;
+      const pricePerItem = orderData.yogurtOption === "DENGAN YOGURT" ? basePrice + 2000 : basePrice;
+      const totalPrice = quantity * pricePerItem;
+      
+      const orderDetails = {
+        menu: selectedMenu,
+        ...orderData,
+        quantity: quantity,
+        pricePerItem,
+        totalPrice,
+        orderDate: new Date().toISOString()
+      };
+      
+      console.log("Order Data:", orderDetails);
+      
+      // SIMPAN ORDER KE API DAN HISTORY
+      const result = await onSaveOrder(orderDetails);
+      
+      if (result.success) {
+        // Simpan data order untuk ditampilkan di popup
+        setLastOrder({
+          menuName: selectedMenu.name,
+          yogurtOption: orderData.yogurtOption,
+          quantity: quantity,
+          totalPrice: totalPrice,
+          address: orderData.address
+        });
+        
+        // Tampilkan popup success
+        setShowSuccessPopup(true);
+        
+        // Reset form data setelah submit berhasil
+        setOrderData({
+          quantity: 1,
+          name: "",
+          address: "",
+          notes: "",
+          yogurtOption: "TANPA YOGURT"
+        });
+        
+        setFormErrors({});
+        
+        onCloseForm();
+      } else {
+        // Tampilkan error message
+        alert('Gagal menyimpan pesanan. Pesanan disimpan secara lokal saja.');
+        
+        // Tetap tampilkan success popup untuk local storage
+        setLastOrder({
+          menuName: selectedMenu.name,
+          yogurtOption: orderData.yogurtOption,
+          quantity: quantity,
+          totalPrice: totalPrice,
+          address: orderData.address
+        });
+        setShowSuccessPopup(true);
+        setOrderData({
+          quantity: 1,
+          name: "",
+          address: "",
+          notes: "",
+          yogurtOption: "TANPA YOGURT"
+        });
+        setFormErrors({});
+        onCloseForm();
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      alert('Terjadi kesalahan saat menyimpan pesanan.');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // Simpan data order untuk ditampilkan di popup
-    setLastOrder({
-      menuName: selectedMenu.name,
-      yogurtOption: orderData.yogurtOption,
-      quantity: quantity,
-      totalPrice: totalPrice,
-      address: orderData.address
-    });
-    
-    // Tampilkan popup success
-    setShowSuccessPopup(true);
-    
-    // Reset form data setelah submit berhasil
-    setOrderData({
-      quantity: 1,
-      name: "",
-      address: "",
-      notes: "",
-      yogurtOption: "TANPA YOGURT"
-    });
-    
-    setFormErrors({});
-    
-    onCloseForm();
   };
 
   // Fungsi untuk navigasi ke history
@@ -248,6 +277,35 @@ const HomeView = ({
   const handleStayHere = () => {
     setShowSuccessPopup(false);
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="font-[Poppins] bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat menu...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state - jika tidak ada produk
+  if (error && menus.length === 0) {
+    return (
+      <div className="font-[Poppins] bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-yellow-400 text-gray-900 px-6 py-2 rounded-full font-bold hover:bg-yellow-500 transition-colors"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="font-[Poppins] bg-white min-h-screen relative">
@@ -302,6 +360,13 @@ const HomeView = ({
           <h3 className="text-lg md:text-2xl font-bold mb-3 md:mb-6">Our Menu</h3>
         )}
 
+        {/* Error message - DIPERBAIKI: hapus pesan tentang menu default */}
+        {error && (
+          <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 rounded-lg mx-4">
+            <p className="text-yellow-700 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className="relative w-full">
           <div
             ref={menuContainerRef}
@@ -334,11 +399,15 @@ const HomeView = ({
                       isMobile ? "h-32 w-32" : "h-36 w-36"
                     } flex items-center justify-center mb-2`}>
                       <img
-                        src={item.image}
+                        src={item.image} // Gambar dari API
                         alt={item.name}
                         className={`${
                           isMobile ? "h-28 w-28" : "h-32 w-32"
                         } object-contain transition-transform duration-300`}
+                        onError={(e) => {
+                          // Fallback jika gambar dari API gagal load
+                          e.target.src = 'https://via.placeholder.com/150x150?text=No+Image';
+                        }}
                       />
                     </div>
 
@@ -355,6 +424,20 @@ const HomeView = ({
                       >
                         {item.name}
                       </h4>
+                    </div>
+
+                    {/* Description */}
+                    {item.description && (
+                      <div className="mb-2">
+                        <p className="text-xs text-gray-600">{item.description}</p>
+                      </div>
+                    )}
+
+                    {/* Price */}
+                    <div className="mb-2">
+                      <p className="text-sm font-semibold text-gray-700">
+                        Rp {item.basePrice?.toLocaleString('id-ID')}
+                      </p>
                     </div>
 
                     {/* Button - Hanya aktif ketika card dipilih */}
@@ -384,18 +467,33 @@ const HomeView = ({
         </div>
 
         {/* Navigation Dots */}
-        <div className="flex justify-center gap-3 md:gap-4 mt-6 md:mt-8">
-          {menus.map((_, index) => (
-            <button
-              key={index}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === menuIndex ? "bg-yellow-500 w-8" : "bg-gray-400"
-              }`}
-              onClick={() => handleCardClick(index)}
-              aria-label={`Go to menu ${index + 1}`}
-            />
-          ))}
-        </div>
+        {menus.length > 0 && (
+          <div className="flex justify-center gap-3 md:gap-4 mt-6 md:mt-8">
+            {menus.map((_, index) => (
+              <button
+                key={index}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === menuIndex ? "bg-yellow-500 w-8" : "bg-gray-400"
+                }`}
+                onClick={() => handleCardClick(index)}
+                aria-label={`Go to menu ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* No products message */}
+        {menus.length === 0 && !loading && !error && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Tidak ada menu yang tersedia.</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-full text-sm font-bold hover:bg-yellow-500 transition-colors"
+            >
+              Refresh Halaman
+            </button>
+          </div>
+        )}
       </section>
 
       {/* ORDER FORM - RESPONSIVE POPUP TANPA BACKDROP HITAM */}
@@ -410,6 +508,7 @@ const HomeView = ({
                   type="button"
                   onClick={onCloseForm}
                   className="text-gray-500 hover:text-gray-700 text-base md:text-lg font-bold w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                  disabled={isSubmitting}
                 >
                   ✕
                 </button>
@@ -417,12 +516,27 @@ const HomeView = ({
 
               {/* Menu Info */}
               <div className="mb-4 md:mb-6 p-3 md:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h3 className="text-base md:text-lg font-semibold text-gray-800">
-                  {selectedMenu.name} 
-                  {selectedMenu.description && (
-                    <span className="text-gray-600 font-normal"> ({selectedMenu.description})</span>
-                  )}
-                </h3>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={selectedMenu.image}
+                    alt={selectedMenu.name}
+                    className="w-12 h-12 object-contain rounded-lg"
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/50x50?text=No+Image';
+                    }}
+                  />
+                  <div>
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800">
+                      {selectedMenu.name} 
+                    </h3>
+                    {selectedMenu.description && (
+                      <p className="text-gray-600 text-sm">{selectedMenu.description}</p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  Harga dasar: Rp {(selectedMenu.basePrice || 8000).toLocaleString('id-ID')}
+                </p>
               </div>
 
               {/* Form Fields */}
@@ -438,7 +552,8 @@ const HomeView = ({
                     value={orderData.quantity}
                     onChange={handleInputChange}
                     min="1"
-                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none outline-none"
+                    disabled={isSubmitting}
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none outline-none disabled:opacity-50"
                   />
                   {formErrors.quantity && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.quantity}</p>
@@ -456,7 +571,8 @@ const HomeView = ({
                     value={orderData.name}
                     onChange={handleInputChange}
                     placeholder="Masukkan nama"
-                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none"
+                    disabled={isSubmitting}
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none disabled:opacity-50"
                   />
                   {formErrors.name && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>
@@ -474,7 +590,8 @@ const HomeView = ({
                     onChange={handleInputChange}
                     placeholder="Masukkan alamat lengkap untuk pengiriman"
                     rows={isMobile ? 2 : 3}
-                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none outline-none"
+                    disabled={isSubmitting}
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none outline-none disabled:opacity-50"
                   />
                   {formErrors.address && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>
@@ -490,7 +607,8 @@ const HomeView = ({
                     name="yogurtOption"
                     value={orderData.yogurtOption}
                     onChange={handleInputChange}
-                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none"
+                    disabled={isSubmitting}
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all outline-none disabled:opacity-50"
                   >
                     <option value="TANPA YOGURT">TANPA YOGURT - Rp 8.000</option>
                     <option value="DENGAN YOGURT">DENGAN YOGURT - Rp 10.000</option>
@@ -508,7 +626,8 @@ const HomeView = ({
                     onChange={handleInputChange}
                     placeholder="Tambahkan catatan (opsional)"
                     rows={isMobile ? 1 : 2}
-                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none outline-none"
+                    disabled={isSubmitting}
+                    className="w-full p-2 md:p-3 text-sm md:text-base bg-gray-50 rounded-lg border-2 border-yellow-400 focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none outline-none disabled:opacity-50"
                   />
                 </div>
 
@@ -527,9 +646,17 @@ const HomeView = ({
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    className="w-full bg-yellow-400 text-gray-900 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-yellow-500 active:bg-yellow-600 transition-colors shadow-lg border-2 border-yellow-500 outline-none"
+                    disabled={isSubmitting}
+                    className="w-full bg-yellow-400 text-gray-900 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-yellow-500 active:bg-yellow-600 transition-colors shadow-lg border-2 border-yellow-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Buat Pesanan - Rp {calculateTotalPrice().toLocaleString('id-ID')}
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Menyimpan...
+                      </div>
+                    ) : (
+                      `Buat Pesanan - Rp ${calculateTotalPrice().toLocaleString('id-ID')}`
+                    )}
                   </button>
                   
                   {/* Info required fields */}

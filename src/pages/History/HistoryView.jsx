@@ -1,7 +1,6 @@
-// HistoryView.jsx
 import React, { useState } from 'react';
 
-const HistoryView = ({ orders = [] }) => {
+const HistoryView = ({ orders = [], loading = false, error = null }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const ordersPerPage = 7;
@@ -14,6 +13,7 @@ const HistoryView = ({ orders = [] }) => {
 
   // Format currency ke IDR
   const formatCurrency = (amount) => {
+    if (!amount) return 'Rp 0';
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
@@ -22,16 +22,25 @@ const HistoryView = ({ orders = [] }) => {
     }).format(amount);
   };
 
-  // Format date
+  // Format date - DIPERBAIKI
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return '-';
+      }
+      return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '-';
+    }
   };
 
   // Toggle expanded order
@@ -86,6 +95,18 @@ const HistoryView = ({ orders = [] }) => {
     return pageNumbers;
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="font-[Poppins] flex-1 bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat riwayat pesanan...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="font-[Poppins] flex-1 bg-white min-h-screen">
       {/* Content Container */}
@@ -103,6 +124,13 @@ const HistoryView = ({ orders = [] }) => {
               </span>
             )}
           </p>
+          
+          {/* Error Message */}
+          {error && (
+            <div className="mt-2 p-2 bg-yellow-100 border border-yellow-400 rounded text-xs text-yellow-700">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Orders List */}
@@ -134,11 +162,11 @@ const HistoryView = ({ orders = [] }) => {
                       {/* Gambar Menu */}
                       <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         <img
-                          src={order.menu?.image || '/placeholder-smoothie.png'}
+                          src={order.menu?.image || 'https://via.placeholder.com/50x50?text=No+Image'}
                           alt={order.menu?.name || 'Smoothie'}
                           className="w-8 h-8 object-contain"
                           onError={(e) => {
-                            e.target.src = '/placeholder-smoothie.png';
+                            e.target.src = 'https://via.placeholder.com/50x50?text=No+Image';
                           }}
                         />
                       </div>
@@ -178,9 +206,9 @@ const HistoryView = ({ orders = [] }) => {
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">Kelas/Alamat</p>
+                            <p className="text-xs text-gray-500 mb-1">Alamat</p>
                             <p className="text-sm font-semibold text-gray-800">
-                              {order.classAddress || '-'}
+                              {order.address || '-'}
                             </p>
                           </div>
                         </div>
@@ -190,13 +218,13 @@ const HistoryView = ({ orders = [] }) => {
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Yogurt</p>
                             <p className="text-sm font-semibold text-gray-800">
-                              {order.yogurtOption || 'Standard'}
+                              {order.yogurtOption || 'TANPA YOGURT'}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">Pembayaran</p>
+                            <p className="text-xs text-gray-500 mb-1">Harga per Item</p>
                             <p className="text-sm font-semibold text-gray-800">
-                              {order.paymentMethod || '-'}
+                              {formatCurrency(order.pricePerItem)}
                             </p>
                           </div>
                         </div>
@@ -215,7 +243,7 @@ const HistoryView = ({ orders = [] }) => {
                         <div className="bg-white rounded p-2 border">
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-gray-700">
-                              {order.quantity} × {formatCurrency(order.pricePerItem || order.totalPrice / order.quantity)}
+                              {order.quantity} × {formatCurrency(order.pricePerItem || (order.totalPrice / order.quantity))}
                             </span>
                             <span className="font-bold text-gray-900">
                               = {formatCurrency(order.totalPrice)}
@@ -225,7 +253,7 @@ const HistoryView = ({ orders = [] }) => {
 
                         {/* Order Date */}
                         <p className="text-xs text-gray-400 text-center">
-                          {formatDate(order.orderDate || new Date().toISOString())}
+                          {formatDate(order.orderDate)}
                         </p>
                       </div>
                     </div>
